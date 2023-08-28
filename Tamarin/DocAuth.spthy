@@ -1,0 +1,125 @@
+theory DocAuth
+
+begin
+
+builtins:   signing,
+            asymmetric-encryption,
+            symmetric-encryption,
+            hashing
+
+/* key setup and secure distribution */
+rule Register_Key_Pair:
+    [ Fr(~k) ]
+  -->
+    [ !PrivateKey($I, ~k),
+      !PublicKey($I, pk(~k)),
+      Out(pk(~k)) ] //adversary learns public key 
+
+/* compromise key */
+rule Compromise_Key:
+    [ !PrivateKey($I, ~k) ]
+  --[ Compromised(pk(~k)) ]->
+    [ Out(~k),
+      !CompromisedKey(pk(~k)) ]
+
+/* revoke compromised key */
+rule Revoke_Key:
+    [ !CompromisedKey(K) ]
+  --[ Revoked(K) ]->
+    [ ]
+
+/* compromise host */
+rule Compromise_Host: //adversary can compromise any host server
+    [ In( <I, url, doc, k> ) ]
+  --[ Compromised(url) ]->
+    [ !Host(I, url, senc{doc}k) ]
+
+/* get signed timestamp */
+rule Get_Signed_Timestamp: //adversary gets a signed timestamp
+    [ In(S),
+      Fr(t),
+      !PrivateKey(TS, kTS) ]
+  -->
+    [ Out(<t, sign{S, t}kTS>) ]
+
+/* post */
+rule Secure_Post:
+    [ Sent(I, U, letter) ]
+  -->
+    [ Received(U, I, letter) ]
+
+rule Insecure_Post: //adversary can read any letter
+    [ Sent(I, U, letter) ]
+  -->
+    [ Out(letter) ]
+
+rule Post_Receive: //adversary can produce and put letters in any mailbox
+    [ In(letter) ]
+  -->
+    [ Received($U, $I, letter) ]
+
+/* protocol */
+rule Issue_and_Send_Document:
+    let S = sign{~url, h(~doc), ~encKey}kI
+        timeSig = sign{S, t}kTS
+        QR = <~url, h(~doc), ~encKey, S, t, timeSig>
+    in
+    [ Fr(~doc),
+      Fr(~url),
+      Fr(~encKey),
+      Fr(t),
+      !PrivateKey(I, kI), //issuer
+      !PrivateKey(TS, kTS) //timestamp server
+    ]
+  --[ Issued(I, ~doc) ]->
+    [ Sent(I, $U, <~doc, QR> ),
+      !Host(I, ~url, senc{~doc}~encKey ) ]
+
+rule Receive_and_Authenticate_Document:
+    let contentS = <url, h(doc), encKey>
+        QR = <url, h(doc), encKey, S, t, timeSig>
+    in
+    [ !PublicKey(I, KI),
+      !PublicKey(TS, KTS),
+      !Host(I, url, senc{doc}encKey),
+      Received($U, I, <doc, QR>) ]
+  --[ Eq( verify(S, contentS, KI), true ),
+      Eq( verify(timeSig, <S, t>, KTS), true ),
+      IssuerKey(KI),
+      TSKey(KTS),
+      Honest(url),
+      Honest(KI),
+      Authentic(I, doc) ]->
+    [ ]
+
+/* restrictions */
+restriction equal:
+  "All a b #i. Eq(a, b)@i ==> a = b"
+
+/* 
+* Whenever an issuer key is used for authentication, it is the case that
+* if the key has been revoked, then it was either revoked after the timestamp
+* provided by the timestamp server or such server has been compromised 
+*/
+restriction secure_timestamping:
+  "All K #i #j. 
+    IssuerKey(K)@i & Revoked(K)@j
+  ==>
+    i<j | Ex KTS #l. TSKey(KTS)@i & Compromised(KTS)@l"
+
+/* lemmas */
+lemma executable:
+  exists-trace
+  "Ex I doc #i #j.
+    Authentic(I, doc)@i & 
+    Issued(I, doc)@j &
+    not (Ex X #j. Compromised(X)@j)"
+
+lemma document_origin_authentication:
+  "All I doc #i. 
+    Authentic(I, doc)@i
+  ==>
+    (Ex #j. Issued(I, doc)@j) | 
+    (Ex X #j. Honest(X)@i & Compromised(X)@j)"
+
+end

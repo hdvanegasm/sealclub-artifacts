@@ -25,5 +25,5 @@ The random warps are generated using the source code in
 https://github.com/hdvanegasm/warper. In the repository, you will find detailed
 instructions to set up and run the software.
 
-We do not consider the complete software needed to reproduce the experiments
+We do not include the complete software needed to reproduce the experiments
 because the algorithm for detecting forgeries is a proprietary artifact.

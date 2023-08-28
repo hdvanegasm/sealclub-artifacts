@@ -2,8 +2,7 @@
 
 In this repository, you will find all the artifacts for the paper "SealClub: 
 Computer-aided Paper Document Authentication". Those artifacts were used in Section
- 5 to evaluate the performance of our solution. The organization of the 
-repository is as follows:
+4.2 and Section 5. The organization of the repository is as follows:
 - The `OriginalDocuments` folder contains all the documents 
 used in the evaluation of the work. The folder will contain files named as
 `<index>-<version>.jpg`. The version will be `a` or `b`; the former is the
@@ -15,9 +14,12 @@ contain images named `<index>-<version>-<warp_idx>.jpg` that correspond to a
 randomly warped version of the `<index>-<version>.jpg` document in the `Data`
 folder.
 
-- The `videos` folder contains the output of our analysis tools on videos of printed documents based on `OriginalDocuments`
+- The `videos` folder contains the output of our analysis tools on videos of 
+printed documents based on `OriginalDocuments`.
   
-- The `Tamarin` folder contains a proof of the formalized protocol, which can be verified using the Tamarin Prover.
+- The `Tamarin` folder contains a proof of the formalized protocol, which can be
+ verified using the Tamarin Prover. Such proof was mentioned in Section 4.2 which
+ discusses the security guarantees that our system provides.
 
 The random warps are generated using the source code in
 https://github.com/hdvanegasm/warper. In the repository, you will find detailed
